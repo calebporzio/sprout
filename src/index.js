@@ -20,7 +20,11 @@
     function evaluate(expr, ctx) {
         expr = stripBraces(expr);
         if (expr === "_") return ctx._;
-        return dataGet(ctx, expr);
+        let val = dataGet(ctx, expr);
+        if (val === undefined && ctx && ctx._ != null) {
+            val = dataGet(ctx._, expr);
+        }
+        return val;
     }
 
     const isJsDom = () => {
@@ -122,11 +126,16 @@
 
     function hydrateText(node, parent, ctx) {
         const raw = node.textContent;
-        const trimmed = raw.trim();
-        if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
-            const val = evaluate(trimmed, ctx);
-            parent.append(document.createTextNode(val != null ? String(val) : ""));
+
+        // If the text contains one or more "{...}" placeholders, interpolate them.
+        if (raw.includes("{")) {
+            const interpolated = raw.replace(/\{[^{}]+\}/g, (match) => {
+                const val = evaluate(match, ctx);
+                return val != null ? String(val) : "";
+            });
+            parent.append(document.createTextNode(interpolated));
         } else {
+            // Static text, clone as-is
             parent.append(document.createTextNode(raw));
         }
     }
