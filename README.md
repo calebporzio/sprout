@@ -1,6 +1,6 @@
 # 🌱 Sprout
 
-A zero-dependancy library for turning JSON into reactive DOM.
+A zero-dependency library for turning JSON into reactive DOM.
 
 ## Features
 
