@@ -1,9 +1,44 @@
 {
-  "name": "sprout",
+  "name": "@sprout-js/sprout",
   "version": "0.1.0",
-  "description": "Minimal vanilla JS templating playground with tests.",
+  "description": "A zero-dependency library for turning JSON into reactive DOM using native HTML templates",
+  "main": "src/index.js",
+  "type": "module",
+  "files": [
+    "src/",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "prepublishOnly": "npm test"
+  },
+  "keywords": [
+    "templating",
+    "reactive",
+    "dom",
+    "vanilla-js",
+    "zero-dependencies",
+    "html-templates",
+    "json",
+    "lightweight",
+    "frontend"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-username/sprout.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/sprout/issues"
+  },
+  "homepage": "https://github.com/your-username/sprout#readme",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "jest": {
     "testEnvironment": "jsdom"

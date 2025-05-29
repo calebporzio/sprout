@@ -15,7 +15,7 @@ A zero-dependancy library for turning JSON into reactive DOM.
 ### Installation
 
 ```bash
-npm install sprout
+npm install @sprout-js/sprout
 ```
 
 ### Basic Usage
@@ -33,7 +33,9 @@ npm install sprout
         <p>Count: {count}</p>
     </template>
 
-    <script type="module" src="/src/index.js"></script>
+    <script type="module">
+        import '@sprout-js/sprout';
+    </script>
 </body>
 </html>
 ```
@@ -126,7 +128,9 @@ Show or hide content based on data conditions:
         </div>
     </template>
 
-    <script type="module" src="/src/index.js"></script>
+    <script type="module">
+        import '@sprout-js/sprout';
+    </script>
 </body>
 </html>
 ```

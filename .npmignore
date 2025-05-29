@@ -1,0 +1,45 @@
+# Development files
+tests/
+*.test.js
+*.spec.js
+
+# Example files
+index.html
+benchmark.html
+app.js
+
+# Development dependencies
+node_modules/
+package-lock.json
+
+# Version control
+.git/
+.gitignore
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
