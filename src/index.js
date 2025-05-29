@@ -171,18 +171,93 @@
 
         // loops
         if (tpl.hasAttribute("data-for")) {
-            const expr = stripBraces(tpl.getAttribute("data-for")); // e.g. "user in _"
-            const [, itemName, listExpr] = expr.match(/^(\w+)\s+in\s+(.+)$/) || [];
-            const list = evaluate(listExpr, ctx) || [];
-
-            list.forEach((item) => {
-                const childCtx = { ...ctx, [itemName]: item, _ : item };
-                tpl.content.childNodes.forEach((c) => hydrateNode(c, parent, childCtx));
-            });
+            hydrateForLoop(tpl, parent, ctx);
             return;
         }
 
         // bare template → just inline its content
         tpl.content.childNodes.forEach((c) => hydrateNode(c, parent, ctx));
+    }
+
+    // -------------------------------------------------
+    // Keyed loop hydration & diffing
+    // -------------------------------------------------
+
+    function hydrateForLoop(tpl, parent, ctx) {
+        const expr = stripBraces(tpl.getAttribute("data-for")); // e.g. "user in _"
+        const [, itemName, listExpr] = expr.match(/^(\w+)\s+in\s+(.+)$/) || [];
+        const list = evaluate(listExpr, ctx) || [];
+
+        // Prepare key expression, default to loop index if not provided
+        const keyAttr = tpl.getAttribute("data-key") || "";
+
+        // Create or reuse sentinel markers to delimit the loop region
+        if (!tpl._loopStart) {
+            tpl._loopStart = document.createComment("loop-start");
+            tpl._loopEnd = document.createComment("loop-end");
+        }
+        // Ensure markers are attached to current parent (they may have been detached by cleanup)
+        if (tpl._loopStart.parentNode !== parent) {
+            parent.append(tpl._loopStart);
+            parent.append(tpl._loopEnd);
+        }
+
+        // Internal cache mapping keys → root DOM node of the item
+        if (!tpl._keyMap) tpl._keyMap = new Map();
+        const keyMap = tpl._keyMap;
+
+        // Track which keys we saw this pass
+        const seenKeys = new Set();
+
+        // Helper to evaluate key for current item
+        const getKey = (childCtx, item, idx) => {
+            if (!keyAttr) {
+                // Heuristic: use item's `id` if present, else fallback to index
+                if (item && typeof item === 'object' && 'id' in item) return item.id;
+                return idx;
+            }
+            const raw = keyAttr.trim();
+            if (raw.startsWith("{") && raw.endsWith("}")) {
+                return evaluate(raw, childCtx);
+            }
+            return evaluate(`{${raw}}`, childCtx); // allow plain path without braces
+        };
+
+        // Render / move items in order
+        list.forEach((item, idx) => {
+            const childCtx = { ...ctx, [itemName]: item, _: item };
+            const key = getKey(childCtx, item, idx);
+            seenKeys.add(key);
+
+            let rootNode = keyMap.get(key);
+
+            if (!rootNode) {
+                // New item → create DOM
+                const frag = document.createDocumentFragment();
+                tpl.content.childNodes.forEach((c) => hydrateNode(c, frag, childCtx));
+
+                // Prefer the first element node as the root. Fallback to the very first node.
+                rootNode = Array.from(frag.childNodes).find(n => n.nodeType === Node.ELEMENT_NODE) || frag.firstChild;
+                keyMap.set(key, rootNode);
+
+                parent.insertBefore(frag, tpl._loopEnd);
+            } else {
+                // Existing item → move to correct position (before loopEnd keeps order)
+                parent.insertBefore(rootNode, tpl._loopEnd);
+
+                // Re-render the item's subtree by diffing? For simplicity, recreate DOM under root
+                // Remove previous children and hydrate fresh (cheap for small item templates)
+                while (rootNode.firstChild) rootNode.firstChild.remove();
+                tpl.content.childNodes.forEach((c) => hydrateNode(c, rootNode, childCtx));
+            }
+        });
+
+        // Remove any stale items not seen in this pass
+        keyMap.forEach((node, key) => {
+            if (!seenKeys.has(key)) {
+                node.remove();
+                keyMap.delete(key);
+            }
+        });
     }
 })();
