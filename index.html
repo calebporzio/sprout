@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <template is="🌱" data-json='[{"name": "John", "age": 30, "isAdmin": true}, {"name": "Jane", "age": 25, "isAdmin": false}]'>
+        <template data-for="{user in _}">
+            <div>
+                <template data-if="{user.isAdmin}">
+                    <h1>Admin: <span>{user.name}</span></h1>
+                    <p class="{user.name}">{user.age}</p>
+                </template>
+
+                <template data-unless="{user.isAdmin}">
+                    <h1>{user.name}</h1>
+                    <p class="{user.name}">{user.age}</p>
+                </template>
+            </div>
+        </template>
+    </template>
+
+    <script type="module" src="/src/index.js"></script>
+</body>
+</html>

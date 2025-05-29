@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>🌱 Browser Benchmark</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            margin: 2rem;
+        }
+        pre {
+            background: #f6f8fa;
+            padding: 1rem;
+            border-radius: 6px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+<h1>🌱 Benchmark (in browser)</h1>
+<p>
+    Use <code>?items=10000</code> in the URL to change dataset size<br />
+    Open DevTools console to see extra logs.
+</p>
+<pre id="output"></pre>
+
+<script type="module">
+import './src/index.js';
+
+const $out = document.getElementById('output');
+const log = (msg) => {
+    console.log(msg);
+    $out.textContent += msg + '\n';
+};
+
+const waitMicrotask = () => new Promise((r) => setTimeout(r, 0));
+
+function generateData(count) {
+    const arr = [];
+    for (let i = 0; i < count; i++) {
+        arr.push({
+            id: i,
+            name: `User-${i}`,
+            age: 18 + (i % 50),
+            isAdmin: i % 10 === 0,
+            nested: { level1: { level2: { value: `deep-${i}` } } },
+        });
+    }
+    return arr;
+}
+
+const ITEMS = Number(new URLSearchParams(location.search).get('items')) || 5000;
+log(`Dataset size: ${ITEMS}`);
+
+// Build root template
+const tpl = document.createElement('template');
+
+tpl.setAttribute('is', '🌱');
+
+// id for debugging
+tpl.id = 'root';
+
+tpl.setAttribute('data-json', JSON.stringify(generateData(ITEMS)));
+
+tpl.innerHTML = `
+  <template data-for="{user in _}">
+    <div>
+      <template data-if="{user.isAdmin}">
+        <h1>Admin: <span>{user.name}</span></h1>
+      </template>
+      <template data-unless="{user.isAdmin}">
+        <h1>{user.name}</h1>
+      </template>
+    </div>
+  </template>
+`;
+
+document.body.appendChild(tpl);
+
+// Little helper to measure durations.
+function measure(label, mutatingFn) {
+    const t0 = performance.now();
+    mutatingFn();
+    return waitMicrotask().then(() => {
+        const t1 = performance.now();
+        log(`${label}: ${(t1 - t0).toFixed(2)} ms`);
+    });
+}
+
+(async () => {
+    // Initial render: trigger the library's DOMContentLoaded hook
+    await measure('Initial render', () => {
+        document.dispatchEvent(new Event('DOMContentLoaded'));
+    });
+
+    // Deep value change
+    await measure('Deep value change', () => {
+        const cloned = JSON.parse(tpl.getAttribute('data-json'));
+        const idx = Math.floor(cloned.length / 2);
+        cloned[idx].nested.level1.level2.value = 'UPDATED';
+        tpl.setAttribute('data-json', JSON.stringify(cloned));
+    });
+
+    // Remove last item
+    await measure('Remove last item', () => {
+        const cloned = JSON.parse(tpl.getAttribute('data-json'));
+        cloned.pop();
+        tpl.setAttribute('data-json', JSON.stringify(cloned));
+    });
+
+    // Add new item
+    await measure('Add new item', () => {
+        const cloned = JSON.parse(tpl.getAttribute('data-json'));
+        const i = cloned.length;
+        cloned.push({
+            id: i,
+            name: `User-${i}`,
+            age: 18 + (i % 50),
+            isAdmin: i % 10 === 0,
+            nested: { level1: { level2: { value: `deep-${i}` } } },
+        });
+        tpl.setAttribute('data-json', JSON.stringify(cloned));
+    });
+
+    // No-op update
+    await measure('No-op update (same JSON)', () => {
+        tpl.setAttribute('data-json', tpl.getAttribute('data-json'));
+    });
+
+    // Toggle conditional branch
+    await measure('Toggle admin flag', () => {
+        const cloned = JSON.parse(tpl.getAttribute('data-json'));
+        if (cloned.length) cloned[0].isAdmin = !cloned[0].isAdmin;
+        tpl.setAttribute('data-json', JSON.stringify(cloned));
+    });
+
+    // Re-order first → last
+    await measure('Re-order (rotate)', () => {
+        const cloned = JSON.parse(tpl.getAttribute('data-json'));
+        if (cloned.length) cloned.push(cloned.shift());
+        tpl.setAttribute('data-json', JSON.stringify(cloned));
+    });
+
+    // Bulk update 5% deep values
+    await measure('Bulk update 5%', () => {
+        const cloned = JSON.parse(tpl.getAttribute('data-json'));
+        const step = Math.max(1, Math.floor(cloned.length / 20));
+        for (let i = 0; i < cloned.length; i += step) {
+            cloned[i].nested.level1.level2.value = 'BULK-' + i;
+        }
+        tpl.setAttribute('data-json', JSON.stringify(cloned));
+    });
+
+    // Memory snapshot (Chrome only)
+    if (performance.memory) {
+        log(`Heap used: ${(performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(2)} MB`);
+    }
+
+    log('\nDone.');
+})();
+</script>
+</body>
+</html>
