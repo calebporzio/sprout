@@ -1,6 +1,6 @@
 # 🌱 Sprout
 
-A minimal, vanilla JavaScript templating library that brings reactive data binding to HTML templates without the bloat.
+A zero-dependancy library for turning JSON into reactive DOM.
 
 ## Features
 
