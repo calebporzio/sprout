@@ -202,7 +202,7 @@
             parent.append(tpl._loopEnd);
         }
 
-        // Internal cache mapping keys → {node, snapshot}
+        // Internal cache mapping keys → root DOM node of the item
         if (!tpl._keyMap) tpl._keyMap = new Map();
         const keyMap = tpl._keyMap;
 
@@ -229,8 +229,7 @@
             const key = getKey(childCtx, item, idx);
             seenKeys.add(key);
 
-            let entry = keyMap.get(key);
-            let rootNode = entry ? entry.node : null;
+            let rootNode = keyMap.get(key);
 
             if (!rootNode) {
                 // New item → create DOM
@@ -239,28 +238,24 @@
 
                 // Prefer the first element node as the root. Fallback to the very first node.
                 rootNode = Array.from(frag.childNodes).find(n => n.nodeType === Node.ELEMENT_NODE) || frag.firstChild;
-                const snapshot = JSON.stringify(item);
-                keyMap.set(key, { node: rootNode, snapshot });
+                keyMap.set(key, rootNode);
 
                 parent.insertBefore(frag, tpl._loopEnd);
             } else {
                 // Existing item → move to correct position (before loopEnd keeps order)
                 parent.insertBefore(rootNode, tpl._loopEnd);
 
-                const newSnapshot = JSON.stringify(item);
-                if (entry.snapshot !== newSnapshot) {
-                    // Content actually changed → re-render subtree
-                    while (rootNode.firstChild) rootNode.firstChild.remove();
-                    tpl.content.childNodes.forEach((c) => hydrateNode(c, rootNode, childCtx));
-                    entry.snapshot = newSnapshot;
-                }
+                // Re-render the item's subtree by diffing? For simplicity, recreate DOM under root
+                // Remove previous children and hydrate fresh (cheap for small item templates)
+                while (rootNode.firstChild) rootNode.firstChild.remove();
+                tpl.content.childNodes.forEach((c) => hydrateNode(c, rootNode, childCtx));
             }
         });
 
         // Remove any stale items not seen in this pass
-        keyMap.forEach((entry, key) => {
+        keyMap.forEach((node, key) => {
             if (!seenKeys.has(key)) {
-                entry.node.remove();
+                node.remove();
                 keyMap.delete(key);
             }
         });
