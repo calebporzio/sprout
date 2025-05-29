@@ -1,5 +1,15 @@
 {
   "name": "sprout",
   "version": "0.1.0",
-  "description": "Minimal vanilla JS templating playground with tests."
+  "description": "Minimal vanilla JS templating playground with tests.",
+  "scripts": {
+    "test": "jest"
+  },
+  "jest": {
+    "testEnvironment": "jsdom"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0"
+  }
 }
