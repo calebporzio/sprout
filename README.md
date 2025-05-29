@@ -1,155 +1,193 @@
 # 🌱 Sprout
 
-Tiny, zero-dependency HTML templating & rendering experiment.
+A minimal, vanilla JavaScript templating library that brings reactive data binding to HTML templates without the bloat.
 
-Sprout lets you describe UI with plain `<template>` tags and drive it
-with ordinary JavaScript data – **no compile-step, no virtual-DOM, no frameworks**.
-It is designed as a playground to explore just how far you can push
-native browser APIs and minimal code while still getting respectable performance.
+## Features
 
----
+- **Zero Dependencies**: Pure vanilla JavaScript with no external libraries
+- **Declarative Syntax**: Use familiar HTML template elements with data attributes
+- **Reactive Rendering**: Automatically re-renders when data changes
+- **Lightweight**: Small footprint perfect for simple to medium complexity applications
+- **Template-First**: Works directly with native HTML `<template>` elements
 
-## Table of contents
+## Quick Start
 
-1. [Demo](#demo)
-2. [Installation](#installation)
-3. [Quick start](#quick-start)
-4. [Template syntax](#template-syntax)
-5. [Benchmarks](#benchmarks)
-6. [Development](#development)
-7. [Running tests](#running-tests)
-8. [Contributing](#contributing)
-9. [License](#license)
+### Installation
 
----
-
-## Demo
-
-Open `benchmark.html` in your favourite browser.
-Sprout will render **5 000** rows, perform several mutations and print the timings:
-
-```
-Dataset size: 5000
-Initial render: 48.10 ms
-Deep value change: 2.30 ms
-Remove last item: 9.40 ms
-Add new item: 10.10 ms
-No-op update (same JSON): 0.10 ms
-Toggle admin flag: 4.80 ms
-Re-order (rotate): 6.00 ms
-Bulk update 5 %: 11.90 ms
-Heap used: 6.50 MB
+```bash
+npm install sprout
 ```
 
-Pass a different amount via a query-param, e.g. `benchmark.html?items=20000`.
-
----
-
-## Installation
-
-Sprout lives entirely in the browser – there is **nothing to install at runtime**.
-All tooling below is only required if you want to hack on Sprout itself.
-
-```sh
-# Clone the repo
-$ git clone https://github.com/your-user/sprout.git && cd sprout
-
-# Install dev-deps (Jest, etc.)
-$ npm install
-```
-
----
-
-## Quick start
-
-Include `src/index.js` as an ES-module and add a `<template is="🌱">` in your markup.
-The template will auto-hydrate after `DOMContentLoaded` fires.
+### Basic Usage
 
 ```html
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html>
 <head>
-  <meta charset="utf-8">
-  <title>Sprout Hello</title>
-  <script type="module" src="./src/index.js"></script>
+    <title>My Sprout App</title>
 </head>
 <body>
+    <!-- Define your template with the 🌱 identifier -->
+    <template is="🌱" data-json='{"message": "Hello, World!", "count": 42}'>
+        <h1>{message}</h1>
+        <p>Count: {count}</p>
+    </template>
 
-<template is="🌱" id="users" data-json='[{"name":"Leia"},{"name":"Luke"}]'>
-  <template data-for="{user in _}">
-    <p>Hello, {user.name}!  <small data-if="{user.isAdmin}">(admin)</small></p>
-  </template>
-</template>
-
+    <script type="module" src="/src/index.js"></script>
 </body>
 </html>
 ```
 
-Later, update the data by just mutating/serialising the attribute:
+## Core Concepts
 
-```js
-const tpl = document.getElementById('users');
-const users = JSON.parse(tpl.getAttribute('data-json'));
-users.push({ name: 'Han' });
-tpl.setAttribute('data-json', JSON.stringify(users));
+### Templates
+
+Sprout uses standard HTML `<template>` elements marked with `is="🌱"`. Data is provided via the `data-json` attribute:
+
+```html
+<template is="🌱" data-json='{"users": [...], "title": "User List"}'>
+    <!-- template content -->
+</template>
 ```
 
----
+### Data Binding
 
-## Template syntax
+Use curly braces `{}` for simple interpolation:
 
-* **Expressions** – `{foo.bar}` prints `ctx.foo.bar`.  `{_}` refers to the current loop item.
-* **Loops** – `<template data-for="{user in _}"> … </template>`
-  *Optional*: add `data-key="{user.id}"` for keyed diffing.
-* **Conditionals**
-  * `data-if="{expr}"` – render if truthy
-  * `data-unless="{expr}"` – render if falsy
-* **Plain elements & attributes** work as usual; values wrapped in `{}` are evaluated, others are copied verbatim.
+```html
+<h1>{title}</h1>
+<p class="{cssClass}">{user.name}</p>
+<span>{user.age}</span>
+```
 
----
+### Loops
 
-## Benchmarks
+Iterate over arrays using `data-for`:
 
-`benchmark.html` drives a series of mutations against a large dataset so you
-can profile and compare browsers. Edit the file or its inline script to add
-more scenarios.
+```html
+<template data-for="{user in users}">
+    <div class="user-card">
+        <h3>{user.name}</h3>
+        <p>Age: {user.age}</p>
+    </div>
+</template>
+```
 
-If you optimise the core, load the page, watch the numbers drop and feel good. 🏎️
+The `_` variable refers to the root data context:
 
----
+```html
+<template is="🌱" data-json='[{"name": "Alice"}, {"name": "Bob"}]'>
+    <template data-for="{person in _}">
+        <p>{person.name}</p>
+    </template>
+</template>
+```
+
+### Conditionals
+
+Show or hide content based on data conditions:
+
+```html
+<!-- Show content if condition is truthy -->
+<template data-if="{user.isAdmin}">
+    <div class="admin-panel">Admin Controls</div>
+</template>
+
+<!-- Show content if condition is falsy -->
+<template data-unless="{user.isLoggedIn}">
+    <div class="login-prompt">Please log in</div>
+</template>
+```
+
+## Complete Example
+
+```html
+<!DOCTYPE html>
+<html>
+<body>
+    <template is="🌱" data-json='[
+        {"name": "John", "age": 30, "isAdmin": true},
+        {"name": "Jane", "age": 25, "isAdmin": false}
+    ]'>
+        <div class="user-list">
+            <template data-for="{user in _}">
+                <div class="user-card">
+                    <template data-if="{user.isAdmin}">
+                        <h2>👑 Admin: {user.name}</h2>
+                        <p class="admin-age">Age: {user.age}</p>
+                    </template>
+
+                    <template data-unless="{user.isAdmin}">
+                        <h2>{user.name}</h2>
+                        <p class="user-age">Age: {user.age}</p>
+                    </template>
+                </div>
+            </template>
+        </div>
+    </template>
+
+    <script type="module" src="/src/index.js"></script>
+</body>
+</html>
+```
+
+## API Reference
+
+### Template Attributes
+
+| Attribute | Description | Example |
+|-----------|-------------|---------|
+| `is="🌱"` | Marks a template as a Sprout component | `<template is="🌱">` |
+| `data-json` | Provides data context as JSON string | `data-json='{"key": "value"}'` |
+| `data-for` | Creates a loop over an iterable | `data-for="{item in items}"` |
+| `data-if` | Conditional rendering (truthy) | `data-if="{user.isActive}"` |
+| `data-unless` | Conditional rendering (falsy) | `data-unless="{user.isGuest}"` |
+| `data-key` | Provides unique keys for loop items | `data-key="{user.id}"` |
+
+### Data Context
+
+- `_` - References the root data object
+- Dot notation for nested properties: `{user.profile.name}`
+- Array access and object properties work seamlessly
+
+### Reactivity
+
+Sprout automatically watches for changes to the `data-json` attribute and re-renders the template when the data updates. This makes it easy to build dynamic interfaces:
+
+```javascript
+// Update the template data
+const template = document.querySelector('template[is="🌱"]');
+const newData = {users: [...], timestamp: Date.now()};
+template.setAttribute('data-json', JSON.stringify(newData));
+// Template automatically re-renders!
+```
+
+## Browser Support
+
+- Modern browsers with ES6+ support
+- Uses native `<template>` elements and MutationObserver
+- No IE support (modern web standards only)
 
 ## Development
 
-Sprout's core is ~250 lines (see `src/index.js`). Entry points:
+```bash
+# Install dependencies
+npm install
 
-* **Utility functions** – `dataGet`, `evaluate`, etc.
-* **init → render → hydrate** – pipeline from template element to DOM nodes.
-* **Keyed diffing** – fast path inside `hydrateForLoop()`.
-
-Hack at will, run tests, open the benchmark.
-
----
-
-## Running tests
-
-```sh
-# Run all Jest suites in watch mode
-$ npm test -- --watch
+# Run tests
+npm test
 ```
 
-Tests live in `tests/`;  they verify initial rendering, mutation handling and
-keyed-loop behaviour.
+## Philosophy
 
----
+Sprout embraces the principle that **templates should look like the output they generate**. By leveraging native HTML template elements and minimal JavaScript enhancement, Sprout provides a gentle introduction to reactive templating without the complexity of larger frameworks.
 
-## Contributing
-
-Issues and PRs are welcome! Feel free to file a bug, propose an idea or submit
-an optimisation. Please accompany behavioural changes with unit tests and, if
-possible, benchmark results.
-
----
+Perfect for:
+- Small to medium interactive websites
+- Progressive enhancement of existing HTML
+- Learning reactive concepts
+- Situations where bundle size matters
 
 ## License
 
-MIT © 2024 Sprout contributors
+MIT
